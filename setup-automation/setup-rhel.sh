@@ -8,6 +8,11 @@ echo "Setup vm control01" > /tmp/progress.log
 
 chmod 666 /tmp/progress.log 
 
+mkdir -p /home/rhel/webapp
+chown rhel:rhel /home/rhel/webapp
+
+echo "Podman lab setup complete" >> /tmp/progress.log
+
 #dnf install -y nc
 
 # Epel
