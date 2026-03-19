@@ -1,0 +1,255 @@
+= Deploying a Podman Pod
+
+== What is a Podman Pod?
+
+A pod is a group of one or more containers that share the same network namespace, allowing them to communicate over localhost. This concept comes from Kubernetes and makes it easy to deploy multi-container applications.
+
+Key features of pods:
+
+* Containers in a pod share network and IPC namespaces
+* Containers can communicate via localhost
+* Pods can be managed as a single unit
+* Can generate Kubernetes YAML from pods
+
+== Create a Pod for a Web Application
+
+Let's deploy a complete web application stack consisting of:
+
+* A PostgreSQL database container
+* A web application container (using the image we built earlier)
+
+First, create a pod:
+
+[source,bash,role=execute]
+----
+podman pod create --name webapp-pod -p 8080:8080
+----
+
+This creates a pod named `webapp-pod` and maps port 8080 from the pod to the host.
+
+== Verify the Pod
+
+List the pods:
+
+[source,bash,role=execute]
+----
+podman pod list
+----
+
+You should see your `webapp-pod` listed.
+
+[NOTE]
+====
+Notice that Podman automatically creates an "infra" container for the pod. This container holds the namespaces that other containers in the pod will share.
+====
+
+== Add a Database Container to the Pod
+
+Add a PostgreSQL database container to the pod:
+
+[source,bash,role=execute]
+----
+podman run -d \
+  --pod webapp-pod \
+  --name database \
+  -e POSTGRESQL_USER=webapp \
+  -e POSTGRESQL_PASSWORD=secret \
+  -e POSTGRESQL_DATABASE=webappdb \
+  registry.redhat.io/rhel9/postgresql-13:latest
+----
+
+This command:
+
+* Runs the container in the `webapp-pod` pod
+* Names the container `database`
+* Sets environment variables for PostgreSQL configuration
+
+[TIP]
+====
+Because the database is in the same pod as our web application, the webapp can connect to it using `localhost:5432`.
+====
+
+== Create an Updated Web Application
+
+Let's create a new version of our web application that connects to the database. First, navigate to the webapp directory:
+
+[source,bash,role=execute]
+----
+cd ~/webapp
+----
+
+Create an updated application file:
+
+[source,bash,role=execute]
+----
+cat > app.py << 'EOF'
+from flask import Flask
+import psycopg2
+import os
+
+app = Flask(__name__)
+
+def get_db_connection():
+    try:
+        conn = psycopg2.connect(
+            host='localhost',
+            database='webappdb',
+            user='webapp',
+            password='secret'
+        )
+        return conn
+    except Exception as e:
+        return None
+
+@app.route('/')
+def hello():
+    db_status = "Connected" if get_db_connection() else "Not Connected"
+
+    return '''
+    <html>
+        <body>
+            <h1>Hello from Podman Pod!</h1>
+            <p>This web application is running in a Podman pod.</p>
+            <p>Hostname: {}</p>
+            <p>Database Status: {}</p>
+        </body>
+    </html>
+    '''.format(os.uname().nodename, db_status)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
+EOF
+----
+
+Update the requirements file:
+
+[source,bash,role=execute]
+----
+cat > requirements.txt << 'EOF'
+Flask==3.0.0
+psycopg2-binary==2.9.9
+EOF
+----
+
+== Build the Updated Image
+
+Build a new version of the image:
+
+[source,bash,role=execute]
+----
+podman build -t webapp:v2 .
+----
+
+== Add the Web Application to the Pod
+
+Now add the web application container to the pod:
+
+[source,bash,role=execute]
+----
+podman run -d \
+  --pod webapp-pod \
+  --name webapp \
+  webapp:v2
+----
+
+== Verify the Pod is Running
+
+Check all containers in the pod:
+
+[source,bash,role=execute]
+----
+podman pod ps
+podman ps --pod
+----
+
+== Test the Application
+
+Test the web application:
+
+[source,bash,role=execute]
+----
+curl http://localhost:8080
+----
+
+You should see output showing that the web application is connected to the database!
+
+== Inspect the Pod
+
+View detailed information about the pod:
+
+[source,bash,role=execute]
+----
+podman pod inspect webapp-pod
+----
+
+== Managing Pods
+
+You can manage the entire pod as a single unit:
+
+Stop the pod:
+
+[source,bash,role=execute]
+----
+podman pod stop webapp-pod
+----
+
+Start the pod:
+
+[source,bash,role=execute]
+----
+podman pod start webapp-pod
+----
+
+View pod logs (all containers):
+
+[source,bash,role=execute]
+----
+podman pod logs webapp-pod
+----
+
+== Generate Kubernetes YAML
+
+One powerful feature of Podman is the ability to generate Kubernetes YAML from a pod:
+
+[source,bash,role=execute]
+----
+podman generate kube webapp-pod > webapp-pod.yaml
+----
+
+View the generated YAML:
+
+[source,bash,role=execute]
+----
+cat webapp-pod.yaml
+----
+
+[TIP]
+====
+This YAML can be used to deploy the same pod structure in a Kubernetes cluster, making it easy to move from development to production!
+====
+
+== Cleanup
+
+When you're done, you can remove the entire pod:
+
+[source,bash,role=execute]
+----
+podman pod stop webapp-pod
+podman pod rm webapp-pod
+----
+
+== Summary
+
+Congratulations! You've successfully:
+
+* Installed and verified Podman on RHEL
+* Built custom container images using Containerfiles
+* Deployed a multi-container application using Podman pods
+* Generated Kubernetes YAML for future deployments
+
+You now have the foundational skills to use Podman for container workloads on Red Hat Enterprise Linux.
+
+[IMPORTANT]
+====
+Podman's pod feature makes it easy to develop and test multi-container applications locally, then deploy them to production Kubernetes environments with minimal changes.
+====

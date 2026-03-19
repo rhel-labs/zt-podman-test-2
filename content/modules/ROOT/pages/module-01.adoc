@@ -1,39 +1,44 @@
-= Writing your lab
+= Introduction to Podman
 
-== Variables
+== What is Podman?
 
-The `lab_name` var, known as an asciidoc attribute, is set in `site.yml` and can be used to set the lab_name (Example: {lab_name}) or title of your content.
-They are both free to change its value and if you prefer to use a different var name, you can change the value of `lab_name`, for example to `title` in `site.yml` and then reference it in your content as `\{site-title}` (Ex: {site-title}).
+Podman is a daemonless container engine for developing, managing, and running OCI Containers on your Linux System. Unlike Docker, Podman doesn't require a background daemon process, which provides several security and architectural advantages.
 
-Example:
-[source,asciidoc]
-----
-{my_var}
-----
+Key features of Podman include:
 
-Variable rendered:
+* *Daemonless architecture* - No background service required
+* *Rootless containers* - Run containers as a non-root user
+* *Pod support* - Native support for Kubernetes-style pods
+* *Docker compatibility* - Can use Docker commands and Dockerfiles
+* *Systemd integration* - Generate systemd units for containers
 
-{my_var}
+== Why Use Podman on RHEL?
 
-== Inserting Images
+Red Hat Enterprise Linux includes Podman as the default container engine, providing:
 
-To display an image in your Antora documentation, place the image file in the `assets/images/` folder of the module, then reference it using the `image::[]` macro
+* Enterprise support and security updates
+* Integration with Red Hat's container ecosystem
+* SELinux integration for enhanced security
+* Long-term stability and compatibility
 
-=== Basic Syntax
+[TIP]
+====
+Podman uses the same command-line syntax as Docker. If you're familiar with Docker, you can often just alias `docker=podman` and continue using your existing workflows!
+====
 
-[source,asciidoc]
-----
-image::example-image.png[Example Image, width=100, height=100]
-----
+== What You'll Learn
 
-This will render the `example-image.png` image as it follows:
+In this lab, you will:
 
-image::example-image.png[Example Image, width=100, height=100]
+1. *Install Podman* - Set up Podman and verify the installation
+2. *Build Container Images* - Create custom images using Containerfiles
+3. *Deploy a Pod* - Run a multi-container application using Podman pods
 
-=== Understanding the Antora Configuration
+By the end of this lab, you'll understand how to use Podman for real-world container workloads on RHEL.
 
-This lab explains the purpose and structure of the YAML configuration used in an Antora-based documentation site.
+[NOTE]
+====
+This lab uses Red Hat Enterprise Linux 10, which includes the latest version of Podman with enhanced features and performance improvements.
+====
 
-=== Basic Structure
-
-The configuration is written in YAML `ui-config.yml` and includes two main sections: `antora` and `tabs`. Click next to know more.
+Let's get started!

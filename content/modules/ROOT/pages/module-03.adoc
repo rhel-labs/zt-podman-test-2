@@ -1,29 +1,167 @@
-= Tabs
+= Building Container Images with Containerfiles
 
-[source,yaml]
+== What is a Containerfile?
+
+A Containerfile (also known as a Dockerfile) is a text file that contains instructions for building a container image. It defines the base image, adds files, installs software, and configures the container environment.
+
+== Create a Simple Web Application
+
+Let's create a simple Python web application and package it as a container image.
+
+First, create a working directory:
+
+[source,bash,role=execute]
 ----
-tabs:
-  - name: ">_ terminal"
-    type: "terminal"
-  - name: "Asciidoc Doc"
-    url: https://docs.asciidoctor.org/asciidoc/latest/syntax-quick-reference/
-    external: true
+mkdir -p ~/webapp && cd ~/webapp
 ----
 
-=== Explanation
+Create a simple Python Flask application:
 
-- `name`: The label that appears on the tab in the UI.
-- `type`: Defines the tab layout. Options include:
-  - `terminal`: For a single terminal-like block.
-  - `double-terminal`: For a side-by-side terminal view.
-- `url`: Used to link to an external page.
-- `path`: (If no url is defined) The base path where the service will be served, e.g., `/tty`.
-- `port`: (If no url is defined) The port where the service will be served, e.g., `3000`.
-- `external`: If `true`, the link opens in a new tab/window.
+[source,bash,role=execute]
+----
+cat > app.py << 'EOF'
+from flask import Flask
+import os
 
-== Resulting UI
+app = Flask(__name__)
 
-You might see two tabs in your UI:
-- A terminal emulator style display
-- A link to AsciiDoc syntax reference
+@app.route('/')
+def hello():
+    return '''
+    <html>
+        <body>
+            <h1>Hello from Podman!</h1>
+            <p>This web application is running in a container built with Podman.</p>
+            <p>Hostname: {}</p>
+        </body>
+    </html>
+    '''.format(os.uname().nodename)
 
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
+EOF
+----
+
+Create a requirements file for Python dependencies:
+
+[source,bash,role=execute]
+----
+cat > requirements.txt << 'EOF'
+Flask==3.0.0
+EOF
+----
+
+== Create a Containerfile
+
+Now, create a Containerfile to build the image:
+
+[source,bash,role=execute]
+----
+cat > Containerfile << 'EOF'
+# Use the official Python base image
+FROM registry.access.redhat.com/ubi9/python-39:latest
+
+# Set working directory
+WORKDIR /app
+
+# Copy application files
+COPY requirements.txt .
+COPY app.py .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Expose port 8080
+EXPOSE 8080
+
+# Run the application
+CMD ["python", "app.py"]
+EOF
+----
+
+[NOTE]
+====
+This Containerfile uses the Red Hat Universal Base Image (UBI) for Python 3.9, which provides a supported, secure foundation for your application.
+====
+
+== Build the Container Image
+
+Build the image using Podman:
+
+[source,bash,role=execute]
+----
+podman build -t webapp:v1 .
+----
+
+This command:
+
+* Reads the Containerfile in the current directory
+* Executes each instruction
+* Tags the resulting image as `webapp:v1`
+
+== Verify the Image
+
+List your images to confirm the build:
+
+[source,bash,role=execute]
+----
+podman images
+----
+
+You should see your `webapp:v1` image listed.
+
+== Test the Container
+
+Run the container to test your application:
+
+[source,bash,role=execute]
+----
+podman run -d --name webapp-test -p 8080:8080 webapp:v1
+----
+
+[TIP]
+====
+The `-d` flag runs the container in detached mode (background), and `-p 8080:8080` maps port 8080 from the container to port 8080 on the host.
+====
+
+== Verify the Application
+
+Check if the container is running:
+
+[source,bash,role=execute]
+----
+podman ps
+----
+
+Test the web application:
+
+[source,bash,role=execute]
+----
+curl http://localhost:8080
+----
+
+You should see the HTML output from your Flask application!
+
+== View Container Logs
+
+Check the application logs:
+
+[source,bash,role=execute]
+----
+podman logs webapp-test
+----
+
+== Stop and Remove the Test Container
+
+Clean up the test container:
+
+[source,bash,role=execute]
+----
+podman stop webapp-test
+podman rm webapp-test
+----
+
+[NOTE]
+====
+You've successfully built a container image from a Containerfile! In the next module, you'll learn how to use Podman pods to run multiple containers together.
+====

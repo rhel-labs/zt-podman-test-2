@@ -1,28 +1,78 @@
-= Antora
+= Installing Podman
 
-The `antora` key in `ui-config.yml` defines how the documentation site is built using Antora.
+== Understanding Podman on RHEL
 
-[source,yaml]
+Red Hat Enterprise Linux 10 includes Podman in the default repositories. The installation is straightforward and includes all necessary dependencies for container management.
+
+== Install Podman
+
+Podman should already be installed on your system as it was included in the initial provisioning. Let's verify the installation:
+
+[source,bash,role=execute]
 ----
-antora:
-  name: modules
-  dir: www
-  modules:
-    - name: module-01 
-      label: "Writing your lab"
-    - name: module-02
-      label: "Antora"
-    - name: module-03
-      label: "Tabs"
+podman --version
 ----
 
-=== Explanation
+You should see output showing the Podman version installed on your system.
 
-- `name`: The name of the documentation folder, here called `modules`.
-- `dir`: The directory where the documentation files will be located (`www`). 
-- `modules`: The list of modules that make up your lab.
+== Verify Podman Installation
 
-Each module has:
+Let's run a simple test to ensure Podman is working correctly:
 
-- `name`: The file name within the `pages` directory.
-- `label`: A human-readable label for display in navigation.
+[source,bash,role=execute]
+----
+podman run --rm registry.access.redhat.com/ubi9/ubi-minimal:latest echo "Podman is working!"
+----
+
+This command:
+
+* Downloads the Red Hat Universal Base Image (UBI) minimal image
+* Runs a container that echoes a message
+* Removes the container when it exits (`--rm` flag)
+
+[NOTE]
+====
+The first time you run this command, Podman will download the container image. This may take a moment depending on your network connection.
+====
+
+== Check Available Images
+
+After running the test, you can see the images stored locally:
+
+[source,bash,role=execute]
+----
+podman images
+----
+
+You should see the UBI minimal image listed.
+
+== Inspect Podman Configuration
+
+Podman stores its configuration in several locations. Let's view the main configuration file:
+
+[source,bash,role=execute]
+----
+cat /usr/share/containers/containers.conf
+----
+
+This file contains default settings for Podman, including storage drivers, network settings, and security options.
+
+[TIP]
+====
+User-specific Podman configuration can be placed in `~/.config/containers/containers.conf` to override system defaults.
+====
+
+== Understanding Podman Storage
+
+Podman uses container storage to manage images and containers. Check the storage configuration:
+
+[source,bash,role=execute]
+----
+podman info --format "{{.Store.GraphRoot}}"
+----
+
+This shows where Podman stores container images and layers.
+
+== Validation
+
+You've successfully verified Podman is installed and working on your RHEL system. In the next module, you'll learn how to build custom container images using Containerfiles.
