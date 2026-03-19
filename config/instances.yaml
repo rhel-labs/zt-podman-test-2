@@ -12,7 +12,9 @@ virtualmachines:
     networks:
       - default
     packages:
-      - httpd
+      - podman
+      - buildah
+      - skopeo
 # For cockpit
 #    services:
 #      - name: cockpit
